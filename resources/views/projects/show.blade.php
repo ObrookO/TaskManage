@@ -315,11 +315,11 @@
                                                           class="text @if($task->status == 1) finished-task @endif">{{ $task->name }}</span>
                                                 </div>
                                             </div>
-                                            <ol class="children-tasks">
-                                                @foreach($task->children as $c)
-                                                    <li class="children-task-item">{{ $c->name }}</li>
-                                                @endforeach
-                                            </ol>
+{{--                                            <ol class="children-tasks">--}}
+{{--                                                @foreach($task->children as $c)--}}
+{{--                                                    <li class="children-task-item">{{ $c->name }}</li>--}}
+{{--                                                @endforeach--}}
+{{--                                            </ol>--}}
                                         </div>
                                     @endforeach
                                 </div>

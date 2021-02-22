@@ -80,9 +80,9 @@ class ProjectController extends BaseController
             ->orderBy('sort')
             ->get();
 
-        foreach ($taskList as $k => $item) {
-            $taskList[$k]['tasks'] = $this->formatTasks($item->tasks);
-        }
+//        foreach ($taskList as $k => $item) {
+//            $taskList[$k]['tasks'] = $this->formatTasks($item->tasks);
+//        }
 
         return view('projects.show', [
             'title' => $this->title,
