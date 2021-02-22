@@ -6,10 +6,10 @@ namespace App\Http\Controllers;
 
 use App\Models\User;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\Session;
 use Illuminate\Support\Facades\Validator;
 
-class AuthController extends BaseController
+class AuthController extends Controller
 {
     public function register()
     {
@@ -79,13 +79,13 @@ class AuthController extends BaseController
             return back()->withInput()->withErrors('用户名或密码错误');
         }
 
-        Cache::put('user', ['id' => $user->id, 'name' => $user->name], 24 * 3600);
+        Session::put('user', ['id' => $user->id, 'name' => $user->name]);
         return redirect()->to(route('home'));
     }
 
     public function logout()
     {
-        Cache::forget('user');
+        Session::forget('user');
         return redirect()->to(route('login'));
     }
 }
