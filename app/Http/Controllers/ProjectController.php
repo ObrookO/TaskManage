@@ -75,12 +75,40 @@ class ProjectController extends BaseController
             abort(404);
         }
 
-        $taskList = TaskList::where('project_id', $id)->with(['tasks'])->orderBy('sort')->get();
+        $taskList = TaskList::where('project_id', $id)
+            ->with(['tasks'])
+            ->orderBy('sort')
+            ->get();
+
+        foreach ($taskList as $k => $item) {
+            $taskList[$k]['tasks'] = $this->formatTasks($item->tasks);
+        }
+
         return view('projects.show', [
             'title' => $this->title,
             'project' => $project,
             'taskList' => $taskList
         ]);
+    }
+
+    private function formatTasks($tasks)
+    {
+        $newTasks = [];
+        $sTasks = [];
+
+        foreach ($tasks as $t) {
+            if ($t->pid != 0) {
+                $sTasks[$t->pid][] = $t;
+            }
+        }
+        foreach ($tasks as $t) {
+            if ($t->pid == 0) {
+                $newTasks[$t->id] = $t;
+                $newTasks[$t->id]['children'] = $sTasks[$t->id];
+            }
+        }
+
+        return $newTasks;
     }
 
     /**
@@ -125,6 +153,11 @@ class ProjectController extends BaseController
         return response()->json(['code' => 200, 'msg' => 'OK']);
     }
 
+    /**
+     * 更新项目
+     * @param Request $request
+     * @return \Illuminate\Http\JsonResponse
+     */
     public function update(Request $request)
     {
         $data = $request->all();
@@ -164,4 +197,5 @@ class ProjectController extends BaseController
 
         return response()->json(['code' => 200, 'msg' => 'OK']);
     }
+
 }
