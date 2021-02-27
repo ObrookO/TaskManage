@@ -47,5 +47,6 @@ Route::group(['prefix' => 'task_list'], function () {
 Route::group(['prefix' => 'tasks'], function () {
     Route::post('/', 'TaskController@store')->name('tasks.store');
     Route::post('/update', 'TaskController@update')->name('tasks.update');
+    Route::post('/delete', 'TaskController@delete')->name('tasks.delete');
     Route::get('/{id}', 'TaskController@show')->name('tasks.show')->where('id', '[0-9]+');
 });

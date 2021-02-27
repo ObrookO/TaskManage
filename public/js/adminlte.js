@@ -371,24 +371,24 @@
           offset = 0;
         }
 
-        if (offset !== false) {
-          if (max == heights.control_sidebar) {
-            $(Selector.CONTENT).css('min-height', max + offset);
-          } else if (max == heights.window) {
-            $(Selector.CONTENT).css('min-height', max + offset - heights.header - heights.footer);
-          } else {
-            $(Selector.CONTENT).css('min-height', max + offset - heights.header);
-          }
-
-          if (this._isFooterFixed()) {
-            $(Selector.CONTENT).css('min-height', parseFloat($(Selector.CONTENT).css('min-height')) + heights.footer);
-          }
-        }
+        // if (offset !== false) {
+        //   if (max == heights.control_sidebar) {
+        //     $(Selector.CONTENT).css('min-height', max + offset);
+        //   } else if (max == heights.window) {
+        //     $(Selector.CONTENT).css('min-height', max + offset - heights.header - heights.footer);
+        //   } else {
+        //     $(Selector.CONTENT).css('min-height', max + offset - heights.header);
+        //   }
+        //
+        //   if (this._isFooterFixed()) {
+        //     $(Selector.CONTENT).css('min-height', parseFloat($(Selector.CONTENT).css('min-height')) + heights.footer);
+        //   }
+        // }
 
         if ($('body').hasClass(ClassName.LAYOUT_FIXED)) {
-          if (offset !== false) {
-            $(Selector.CONTENT).css('min-height', max + offset - heights.header - heights.footer);
-          }
+          // if (offset !== false) {
+          //   $(Selector.CONTENT).css('min-height', max + offset - heights.header - heights.footer);
+          // }
 
           if (typeof $.fn.overlayScrollbars !== 'undefined') {
             $(Selector.SIDEBAR).overlayScrollbars({

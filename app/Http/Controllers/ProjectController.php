@@ -76,39 +76,15 @@ class ProjectController extends BaseController
         }
 
         $taskList = TaskList::where('project_id', $id)
-            ->with(['tasks'])
+            ->with(['tasks.children'])
             ->orderBy('sort')
             ->get();
-
-//        foreach ($taskList as $k => $item) {
-//            $taskList[$k]['tasks'] = $this->formatTasks($item->tasks);
-//        }
 
         return view('projects.show', [
             'title' => $this->title,
             'project' => $project,
             'taskList' => $taskList
         ]);
-    }
-
-    private function formatTasks($tasks)
-    {
-        $newTasks = [];
-        $sTasks = [];
-
-        foreach ($tasks as $t) {
-            if ($t->pid != 0) {
-                $sTasks[$t->pid][] = $t;
-            }
-        }
-        foreach ($tasks as $t) {
-            if ($t->pid == 0) {
-                $newTasks[$t->id] = $t;
-                $newTasks[$t->id]['children'] = $sTasks[$t->id];
-            }
-        }
-
-        return $newTasks;
     }
 
     /**

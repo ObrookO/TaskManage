@@ -13,6 +13,11 @@ class Task extends BaseModel
         return $this->belongsTo(Project::class);
     }
 
+    public function children()
+    {
+        return $this->hasMany(Task::class, 'pid');
+    }
+
     public function taskList()
     {
         return $this->belongsTo(TaskList::class);

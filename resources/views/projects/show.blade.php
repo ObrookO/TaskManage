@@ -27,16 +27,15 @@
             display: none;
         }
 
-        #task-list-container .card-body {
-            max-height: 600px;
-            overflow: auto;
-        }
-
         .task-info {
             word-break: break-all;
         }
 
-        .task-active {
+        .task-info .delete-task {
+            display: none;
+        }
+
+        .active-task {
             border-left: 10px solid #1b9aee;
         }
 
@@ -46,19 +45,21 @@
         }
 
         #task-detail-container {
-            width: 50%;
-            height: 100%;
+            width: 60%;
             border-radius: 0;
-            position: absolute;
+            position: fixed;
             top: 0;
-            bottom: 0;
             right: 0;
             z-index: 9999;
-            overflow: auto;
             display: none;
         }
 
+        #task-detail-container .card-header {
+            padding: 0.6rem 1.25rem;
+        }
+
         #task-detail-container .card-body {
+            height: 90%;
             overflow: auto;
         }
 
@@ -66,7 +67,7 @@
             cursor: pointer;
             display: block;
             width: 100%;
-            padding: .375rem .75rem;
+            padding: .375rem .75rem .375rem 0;
             font-size: 1rem;
             font-weight: 400;
             line-height: 1.5;
@@ -82,8 +83,8 @@
         #task-detail-container #change-task-note,
         #task-detail-container #change-task-project,
         #task-detail-container #change-task-list,
-        #task-detail-container #change-parent-task,
-        #task-detail-container #change-task-operator {
+        #task-detail-container #change-task-operator,
+        #task-detail-container #add-children-task {
             display: none;
         }
 
@@ -128,7 +129,7 @@
                     <label class="col-lg-2 col-form-label detail-label" for="task-status">
                         <i class="fa fa-check-square"></i>&nbsp;&nbsp;&nbsp;&nbsp;状态
                     </label>
-                    <div class="col-lg-2">
+                    <div class="col-lg-4">
                         <div class="custom-div" id="task-status" onclick="showStatusSelect(this)"></div>
                         <select id="change-task-status" class="form-control" onblur="hideStatusSelect(this)"
                                 onchange="updateTaskStatus(this)">
@@ -174,16 +175,6 @@
                     </div>
                 </div>
                 <div class="form-group row clearfix">
-                    <label class="col-lg-2 col-form-label detail-label" for="sub-task">
-                        <i class="fa fa-list"></i>&nbsp;&nbsp;&nbsp;所属任务
-                    </label>
-                    <div class="col-lg-4">
-                        <div class="custom-div" id="parent-task" onclick="showTaskSelect(this)"></div>
-                        <select id="change-parent-task" class="form-control" onblur="hideTaskSelect(this)"
-                                onchange="updateTaskParent(this)"></select>
-                    </div>
-                </div>
-                <div class="form-group row">
                     <label class="col-lg-2 col-form-label detail-label" for="task-operator">
                         <i class="fa fa-user"></i>&nbsp;&nbsp;&nbsp;&nbsp;执行者
                     </label>
@@ -200,6 +191,24 @@
                     <div class="col-lg-4">
                         <input type="datetime-local" id="task-deadline" class="form-control"
                                onblur="updateTaskDeadline(this)">
+                    </div>
+                </div>
+                <div class="form-group row">
+                    <label class="col-lg-2 col-form-label detail-label" for="task-operator">
+                        <i class="fa fa-list"></i>&nbsp;&nbsp;&nbsp;&nbsp;子任务
+                    </label>
+                    <div class="col-lg-8">
+                        <div id="children-task-container"></div>
+                        <div id="add-children-task" class="custom-div">
+                            <input type="text" class="form-control" id="children-task-name"
+                                   onblur="addChildrenTask(this)">
+                        </div>
+                        <div class="custom-div">
+                            <button type="button" class="btn btn-outline-secondary btn-xs"
+                                    onclick="showAddChildrenTask()">
+                                <i class="fa fa-plus"></i> 添加
+                            </button>
+                        </div>
                     </div>
                 </div>
                 <div class="form-group row">
@@ -248,7 +257,7 @@
                 {{-- 任务列表 --}}
                 @foreach($taskList as $list)
                     <div class="col-lg-3">
-                        <div class="card card-info list-info" id="task-list-{{$list->id}}"
+                        <div class="card card-info list-info" id="task-list{{$list->id}}"
                              data-task-list-id="{{ $list->id }}"
                              data-project-id="{{ $project->id }}">
                             {{-- 操作任务列表 --}}
@@ -303,7 +312,7 @@
                                 {{-- 任务详情 --}}
                                 <div class="task-info-container" data-task-list-id="{{ $list->id }}">
                                     @foreach($list->tasks as $task)
-                                        <div class="task-item task-info" id="task-{{$task->id}}"
+                                        <div class="task-item task-info" id="task{{$task->id}}"
                                              data-task-id="{{ $task->id }}">
                                             <div class="form-group">
                                                 <div class="icheck-info d-inline">
@@ -315,11 +324,12 @@
                                                           class="text @if($task->status == 1) finished-task @endif">{{ $task->name }}</span>
                                                 </div>
                                             </div>
-{{--                                            <ol class="children-tasks">--}}
-{{--                                                @foreach($task->children as $c)--}}
-{{--                                                    <li class="children-task-item">{{ $c->name }}</li>--}}
-{{--                                                @endforeach--}}
-{{--                                            </ol>--}}
+                                            <ol class="children-tasks">
+                                                @foreach($task->children as $c)
+                                                    <li class="children-task-item @if($c->status == 1) finished-task @endif"
+                                                        id="children-task{{ $c->id }}">{{ $c->name }}</li>
+                                                @endforeach
+                                            </ol>
                                         </div>
                                     @endforeach
                                 </div>
@@ -426,12 +436,21 @@
     <script src="{{ asset('/plugins/summernote/summernote-bs4.min.js') }}"></script>
 
     <script>
+        let detailContainer = $('#task-detail-container');
         $(function () {
+            detailContainer.css({'height': $(window).height()});
+            $('.navbar, .content-header, .content').on('click', function () {
+                if (detailContainer.css('display') === 'block') {
+                    detailContainer.animate({width: 'toggle', opacity: 'toggle'});
+                    $('body').css({'overflow': 'auto'});
+                }
+            });
+
             // 控制任务列表中任务的样式
             $('.task-info').on('mouseenter', function () {
-                $(this).addClass('task-active')
+                $(this).addClass('active-task')
             }).on('mouseleave', function () {
-                $(this).removeClass('task-active')
+                $(this).removeClass('active-task')
             }).on('click', function (event) {
                 let tag = event.target.nodeName.toLowerCase(),
                     id = $(this).data('task-id');
@@ -592,24 +611,35 @@
                 status = $(obj).prop('checked') ? 1 : 0;
 
             updateTask({id: id, status: status}, function (data) {
-                window.location.reload()
+                let d = $('#task' + id),
+                    c = $('.children-tasks').find('#children-task' + id);
+
+                if (status === 1) {
+                    d.find('span').addClass('finished-task');
+                    d.find('input').prop('checked', true);
+                    c.addClass('finished-task');
+                } else {
+                    d.find('span').removeClass('finished-task');
+                    d.find('input').prop('checked', false);
+                    c.removeClass('finished-task');
+                }
             })
         }
 
         function showDetail(id) {
-            let container = $('#task-detail-container');
-            container.hide();
+            detailContainer.hide();
 
             $.get('/tasks/' + id, {}, function (data) {
                 if (data.code === 200) {
-                    let detail = data.data.task,
-                        projects = data.data.projects,
-                        taskList = data.data.taskList,
-                        tasks = data.data.tasks,
-                        users = data.data.users,
+                    let info = data.data,
+                        detail = info.task,
+                        projects = info.projects,
+                        children = detail.children,
+                        taskList = info.taskList,
+                        users = info.users,
                         projectsOptions = '',
+                        childrenHtml = '',
                         taskListOptions = '',
-                        tasksOptions = '<option value="0">无</option>',
                         usersOptions = '<option value="0">待认领</option>';
 
                     for (let i = 0; i < projects.length; i++) {
@@ -622,34 +652,48 @@
                         taskListOptions += '<option value="' + t.id + '"' + (t.id == detail.task_list_id ? ' selected' : '') + '>' + t.name + '</option>';
                     }
 
-                    for (let i = 0; i < tasks.length; i++) {
-                        let t = tasks[i];
-                        tasksOptions += '<option value="' + t.id + '"' + (t.id == detail.pid ? ' selected' : '') + '>' + t.name + '</option>';
-                    }
-
                     for (let i = 0; i < users.length; i++) {
                         let u = users[i];
                         usersOptions += '<option value="' + u.id + '"' + (u.id == detail.user_id ? ' selected' : '') + '>' + u.name + '</option>';
                     }
 
+                    for (let i = 0; i < children.length; i++) {
+                        let name = 'checkbox' + i,
+                            c1 = children[i].status === 1 ? 'checked' : '',
+                            c2 = children[i].status === 1 ? 'finished-task' : '';
+                        childrenHtml +=
+                            '<div class="task-info" data-task-id="' + children[i].id + '" id="task' + children[i].id + '" onmouseenter="showDelete(this)" onmouseleave="hideDelete(this)">' +
+                            '<div class="custom-div">' +
+                            '<div class="icheck-info d-inline">' +
+                            '<input type="checkbox" ' + c1 + ' id="' + name + '" onclick="changeTaskStatus(this)">' +
+                            '<label for="' + name + '"></label>' +
+                            '<span class="children-task-name ' + c2 + '">' + children[i].name + '</span>' +
+                            '<span class="delete-task float-right" onclick="deleteTask(this)">' +
+                            '<i class="fa fa-trash-alt"></i>' +
+                            '</span>' +
+                            '</div>' +
+                            '</div>' +
+                            '</div>';
+                    }
+
                     // 填充select框
-                    container.find('#change-task-project select').html(projectsOptions);
-                    container.find('#change-task-list select').html(taskListOptions);
-                    container.find('#change-parent-task').html(tasksOptions);
-                    container.find('#change-task-operator').html(usersOptions);
+                    detailContainer.find('#change-task-project select').html(projectsOptions);
+                    detailContainer.find('#change-task-list select').html(taskListOptions);
+                    detailContainer.find('#change-task-operator').html(usersOptions);
+                    detailContainer.find('#children-task-container').html(childrenHtml);
 
-                    container.find('#task-id').val(detail.id);
-                    container.find('#project-id').val(detail.project_id);
-                    container.find('#task-list-id').val(detail.task_list_id);
-                    container.find('#task-name').text(detail.name);
-                    container.find('#task-status').text(detail.status === 0 ? '未完成' : '已完成');
-                    container.find('#task-position').text(detail.project.name + ' / ' + detail.task_list.name);
-                    container.find('#parent-task').text(detail.parent ? detail.parent.name : '无');
-                    container.find('#task-operator').text(detail.user ? detail.user.name : '待认领');
-                    container.find('#task-deadline').val(detail.deadline);
-                    container.find('#task-note').html(detail.note);
+                    detailContainer.find('#task-id').val(detail.id);
+                    detailContainer.find('#project-id').val(detail.project_id);
+                    detailContainer.find('#task-list-id').val(detail.task_list_id);
+                    detailContainer.find('#task-name').text(detail.name);
+                    detailContainer.find('#task-status').text(detail.status === 0 ? '未完成' : '已完成');
+                    detailContainer.find('#task-position').text(detail.project.name + ' / ' + detail.task_list.name);
+                    detailContainer.find('#task-operator').text(detail.user ? detail.user.name : '待认领');
+                    detailContainer.find('#task-deadline').val(detail.deadline);
+                    detailContainer.find('#task-note').html(detail.note);
 
-                    container.animate({width: 'toggle', opacity: 'toggle'});
+                    $('body').css({'overflow': 'hidden'});
+                    detailContainer.animate({width: 'toggle', opacity: 'toggle'});
                 } else {
                     alert(data.msg);
                 }
@@ -657,7 +701,27 @@
         }
 
         function closeDetail(obj) {
-            $(obj).parents('#task-detail-container').animate({width: 'toggle', opacity: 'toggle'});
+            detailContainer.animate({width: 'toggle', opacity: 'toggle'});
+            $('body').css({'overflow': 'auto'});
+        }
+
+        function showDelete(obj) {
+            $(obj).find('.delete-task').show();
+        }
+
+        function hideDelete(obj) {
+            $(obj).find('.delete-task').hide();
+        }
+
+        function deleteTask(obj) {
+            let id = $(obj).parents('.task-info').data('task-id');
+            $.post('{{ route('tasks.delete') }}', {
+                _token: GlobalToken,
+                id: id
+            }, function (data) {
+                $('#children-task-container').find('#task' + id).remove();
+                $('.children-tasks').find('#children-task' + id).remove();
+            }, 'json');
         }
 
         function showStatusSelect(obj) {
@@ -675,11 +739,10 @@
         }
 
         function hideProjectSelect(obj) {
-            let container = $(obj).parents('#task-detail-container');
-            container.find('#change-task-project').hide();
-            container.find('#change-task-list').hide();
+            detailContainer.find('#change-task-project').hide();
+            detailContainer.find('#change-task-list').hide();
             $(obj).parents('.position-options').hide();
-            container.find('#task-position').parent().show();
+            detailContainer.find('#task-position').parent().show();
         }
 
         function getProjectTaskList(obj) {
@@ -690,16 +753,8 @@
                     options += '<option value="' + list.id + '">' + list.name + '</option>';
                 }
 
-                $('#task-detail-container #change-task-list select').html(options).focus();
+                detailContainer.find('#change-task-list select').html(options).focus();
             }, 'json')
-        }
-
-        function showTaskSelect(obj) {
-            $(obj).hide().next('#change-parent-task').show().focus();
-        }
-
-        function hideTaskSelect(obj) {
-            $(obj).hide().siblings('#parent-task').show();
         }
 
         function showOperatorSelect(obj) {
@@ -708,6 +763,55 @@
 
         function hideOperatorSelect(obj) {
             $(obj).hide().siblings('#task-operator').show();
+        }
+
+        function showAddChildrenTask() {
+            $('#add-children-task').show();
+            $('#children-task-name').focus();
+        }
+
+        function addChildrenTask(obj) {
+            let project_id = detailContainer.find('#project-id').val(),
+                task_list_id = detailContainer.find('#task-list-id').val(),
+                pid = detailContainer.find('#task-id').val(),
+                name = $(obj).val();
+
+            if (name.length === 0) {
+                $(obj).parent().hide();
+                return;
+            }
+
+            $.post('{{ route('tasks.store') }}', {
+                _token: GlobalToken,
+                project_id: project_id,
+                id: task_list_id,
+                name: name,
+                pid: pid
+            }, function (data) {
+                $(obj).val('').parent().hide();
+                if (data.code === 200) {
+                    let h =
+                        '<div class="task-info" data-task-id="' + data.data + '" id="task' + data.data + '" onmouseenter="showDelete(this)" onmouseleave="hideDelete(this)">' +
+                        '<div class="custom-div">' +
+                        '<div class="icheck-info d-inline">' +
+                        '<input type="checkbox" id="checkbox' + data.data + '" onclick="changeTaskStatus(this)">' +
+                        '<label for="checkbox' + data.data + '"></label>' +
+                        '<span class="children-task-name">' + name + '</span>' +
+                        '<span class="delete-task float-right" onclick="deleteTask(this)">' +
+                        '<i class="fa fa-trash-alt"></i>' +
+                        '</span>' +
+                        '</div>' +
+                        '</div>' +
+                        '</div>',
+                        l =
+                            '<li class="children-task-item" id="children-task' + data.data + '">' + name + '</li>';
+
+                    $('#children-task-container').append(h);
+                    $('#task' + pid).find('.children-tasks').append(l);
+                } else {
+                    alert(data.msg);
+                }
+            }, 'json');
         }
 
         function showTextarea(obj) {
@@ -736,9 +840,8 @@
          * 更新名称
          */
         function updateTaskName(obj) {
-            let container = $(obj).parents('#task-detail-container'),
-                name = $(obj).text(),
-                id = container.find('#task-id').val();
+            let name = $(obj).text(),
+                id = detailContainer.find('#task-id').val();
 
             updateTask({id: id, name: name}, function (data) {
                 if (data.code === 200) {
@@ -755,15 +858,14 @@
          * 更新状态
          */
         function updateTaskStatus(obj) {
-            let container = $(obj).parents('#task-detail-container'),
-                id = container.find('#task-id').val(),
+            let id = detailContainer.find('#task-id').val(),
                 status = $(obj).val();
 
             updateTask({id: id, status: status}, function (data) {
                 if (data.code === 200) {
                     let infoContainer = $('.task-info-container');
                     $(obj).hide();
-                    container.find('#task-status').text($(obj).find('option[value="' + status + '"]').text()).show();
+                    detailContainer.find('#task-status').text($(obj).find('option[value="' + status + '"]').text()).show();
                     // 修改任务列表中任务的选中与取消
                     if (status == 0) {
                         infoContainer.find('#checkbox' + id).attr('checked', false);
@@ -782,10 +884,9 @@
          * 更新项目和任务列表
          */
         function updateTaskProject(obj) {
-            let container = $(obj).parents('#task-detail-container'),
-                id = container.find('#task-id').val(),
-                project_id = container.find('#change-task-project select').val(),
-                task_list_id = container.find('#change-task-list select').val();
+            let id = detailContainer.find('#task-id').val(),
+                project_id = detailContainer.find('#change-task-project select').val(),
+                task_list_id = detailContainer.find('#change-task-list select').val();
 
             if (task_list_id == null) {
                 alert('无可用任务列表');
@@ -794,19 +895,19 @@
 
             updateTask({id: id, project_id: project_id, task_list_id: task_list_id}, function (data) {
                 if (data.code === 200) {
-                    let project_name = container.find('#change-task-project :selected').text(),
-                        task_list_name = container.find('#change-task-list :selected').text(),
-                        original_project_id = container.find('#project-id').val(),
-                        task = $('#task-' + id);
+                    let project_name = detailContainer.find('#change-task-project :selected').text(),
+                        task_list_name = detailContainer.find('#change-task-list :selected').text(),
+                        original_project_id = detailContainer.find('#project-id').val(),
+                        task = $('#task' + id);
 
-                    container.find('#change-task-project').hide();
-                    container.find('#change-task-list').hide();
-                    container.find('.position-options').hide();
-                    container.find('#task-position').text(project_name + ' / ' + task_list_name).parent().show();
+                    detailContainer.find('#change-task-project').hide();
+                    detailContainer.find('#change-task-list').hide();
+                    detailContainer.find('.position-options').hide();
+                    detailContainer.find('#task-position').text(project_name + ' / ' + task_list_name).parent().show();
 
                     task.remove();
                     if (project_id === original_project_id) {
-                        $('#task-list-' + task_list_id).find('.task-info-container').append(task);
+                        $('#task-list' + task_list_id).find('.task-info-container').append(task);
                     }
                 } else {
                     alert(data.msg)
@@ -815,35 +916,16 @@
         }
 
         /**
-         * 更新所属任务
-         */
-        function updateTaskParent(obj) {
-            let container = $(obj).parents('#task-detail-container'),
-                id = container.find('#task-id').val(),
-                pid = $(obj).val();
-
-            updateTask({id: id, pid: pid}, function (data) {
-                if (data.code === 200) {
-                    $(obj).hide();
-                    container.find('#parent-task').text($(obj).find(':selected').text()).show();
-                } else {
-                    alert(data.msg)
-                }
-            })
-        }
-
-        /**
          * 更新执行人
          */
         function updateTaskOperator(obj) {
-            let container = $(obj).parents('#task-detail-container'),
-                id = container.find('#task-id').val(),
+            let id = detailContainer.find('#task-id').val(),
                 user_id = $(obj).val();
 
             updateTask({id: id, user_id: user_id}, function (data) {
                 if (data.code === 200) {
                     $(obj).hide();
-                    container.find('#task-operator').text($(obj).find(':selected').text()).show();
+                    detailContainer.find('#task-operator').text($(obj).find(':selected').text()).show();
                 } else {
                     alert(data.msg)
                 }
@@ -854,8 +936,7 @@
          * 更新截止日期
          */
         function updateTaskDeadline(obj) {
-            let container = $(obj).parents('#task-detail-container'),
-                id = container.find('#task-id').val(),
+            let id = detailContainer.find('#task-id').val(),
                 deadline = $(obj).val();
 
             updateTask({id: id, deadline: deadline}, function (data) {
@@ -869,17 +950,16 @@
          * 更新备注
          */
         function updateTaskNote(obj) {
-            let container = $(obj).parents('#task-detail-container'),
-                textarea = container.find('#change-task-note'),
-                taskId = container.find('#task-id').val(),
+            let textarea = detailContainer.find('#change-task-note'),
+                taskId = detailContainer.find('#task-id').val(),
                 note = textarea.summernote('code');
 
             updateTask({id: taskId, note: note}, function (data) {
                 if (data.code === 200) {
                     textarea.summernote('destroy');
                     textarea.hide();
-                    container.find('.textarea-options').hide();
-                    container.find('#task-note').html(note).show();
+                    detailContainer.find('.textarea-options').hide();
+                    detailContainer.find('#task-note').html(note).show();
                 } else {
                     alert(data.msg)
                 }
