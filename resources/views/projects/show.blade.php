@@ -439,12 +439,14 @@
         let detailContainer = $('#task-detail-container');
         $(function () {
             detailContainer.css({'height': $(window).height()});
-            $('.navbar, .content-header, .content').on('click', function () {
-                if (detailContainer.css('display') === 'block') {
-                    detailContainer.animate({width: 'toggle', opacity: 'toggle'});
-                    $('body').css({'overflow': 'auto'});
+            $(document).on('click', function (e) {
+                if (!detailContainer.is(e.target) && detailContainer.has(e.target).length === 0) {
+                    if (detailContainer.css('display') === 'block') {
+                        detailContainer.animate({width: 'toggle', opacity: 'toggle'});
+                        $('body').css({'overflow': 'auto'});
+                    }
                 }
-            });
+            })
 
             // 控制任务列表中任务的样式
             $('.task-info').on('mouseenter', function () {
