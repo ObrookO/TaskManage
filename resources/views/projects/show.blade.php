@@ -297,7 +297,9 @@
                                                 <span class="input-group-text"><i class="fa fa-user"></i></span>
                                             </div>
                                             <select id="task-user" class="form-control">
-                                                <option value="0">待认领</option>
+                                                @foreach($users as $u)
+                                                    <option value="{{ $u->id }}">{{ $u->name }}</option>
+                                                @endforeach
                                             </select>
                                         </div>
                                     </div>

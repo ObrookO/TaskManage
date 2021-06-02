@@ -8,6 +8,7 @@ use App\Models\Project;
 use App\Models\ProjectUser;
 use App\Models\Task;
 use App\Models\TaskList;
+use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
 
@@ -75,6 +76,7 @@ class ProjectController extends BaseController
             abort(404);
         }
 
+        $users = User::orderBy('id')->get(['id', 'name']);
         $taskList = TaskList::where('project_id', $id)
             ->with(['tasks.children'])
             ->orderBy('sort')
@@ -83,6 +85,7 @@ class ProjectController extends BaseController
         return view('projects.show', [
             'title' => $this->title,
             'project' => $project,
+            'users' => $users,
             'taskList' => $taskList
         ]);
     }

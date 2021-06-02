@@ -11,6 +11,9 @@ class TaskList extends BaseModel
 
     public function tasks()
     {
-        return $this->hasMany(Task::class, 'task_list_id')->where('tasks.pid', 0)->orderByDesc('id');
+        return $this->hasMany(Task::class, 'task_list_id')
+            ->where('tasks.pid', 0)
+            ->where('created_at', 'like', date('Y') . '%')
+            ->orderByDesc('id');
     }
 }
